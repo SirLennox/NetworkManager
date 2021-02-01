@@ -18,11 +18,11 @@ public class NetworkManagerExample {
                     System.out.println("Started!");
                 }
                 if(e instanceof HttpResponseSentEvent) {
-                    System.out.println("------[EVENT]----------\n\n\n\n");
-                    System.out.println("------[REQUEST]-------\n\n");
+                    System.out.println("\n\n\n\n------[EVENT]----------");
+                    System.out.println("\n\n------[REQUEST]-------");
                     System.out.println(((HttpResponseSentEvent) e).req.raw);
                     System.out.println("------[REQUEST END]-------");
-                    System.out.println("------[RESPONSE]-------\n\n");
+                    System.out.println("\n\n------[RESPONSE]-------");
                     System.out.println(((HttpResponseSentEvent) e).res);
                     System.out.println("------[RESPONSE END]-------");
                     System.out.println("------[EVENT END]----------");
