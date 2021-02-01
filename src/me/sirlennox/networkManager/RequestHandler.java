@@ -139,7 +139,6 @@ public class RequestHandler extends Thread {
         } catch (Throwable t) {
 
         }
-8
         super.run();
     }
 
