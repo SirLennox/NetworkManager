@@ -1,21 +1,23 @@
 package me.sirlennox.networkManager;
 
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Request {
 
-    public String raw;
+    public StringBuilder raw;
     public String method;
-    public String host;
-    /*public ArrayList<Header> headers;*/
+    public String url;
+    public int port;
+    public HashMap<String, String> headers;
     public Socket socket;
 
-    public Request(String raw, String method, String host/*, ArrayList<Header> headers*/,Socket socket) {
+    public Request(StringBuilder raw, String method, String url, int port, HashMap<String, String> headers, Socket socket) {
         this.raw = raw;
         this.method = method;
-        this.host = host;
-     //   this.headers = headers;
+        this.url = url;
+        this.port = port;
+        this.headers = headers;
         this.socket = socket;
     }
 

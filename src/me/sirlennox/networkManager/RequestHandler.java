@@ -1,11 +1,15 @@
 package me.sirlennox.networkManager;
 
+import me.sirlennox.networkManager.event.events.HttpsResponseSentEvent;
 import me.sirlennox.networkManager.event.events.PreRequestSentEvent;
 import me.sirlennox.networkManager.event.events.RequestSentEvent;
+import me.sirlennox.networkManager.event.events.HttpResponseSentEvent;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.*;
 
 public class RequestHandler extends Thread {
 
@@ -24,113 +28,68 @@ public class RequestHandler extends Thread {
 
     @Override
     public void run() {
-   /*     try {
-            String rawContent = "";
-
-            Scanner socketToProxyContentScanner = new Scanner(clientSocket.getInputStream());
-            ArrayList<String> contentLines = new ArrayList<>();
-            while (socketToProxyContentScanner.hasNextLine()) {
-                String str = socketToProxyContentScanner.nextLine();
-                contentLines.add(str);
-                rawContent += str + "\r\n";
-            }
-            if (contentLines.isEmpty()) return;
-
-            String request = contentLines.get(0);
-            String[] splittedRequest = request.split(" ");
-            String requestMethod = splittedRequest[0];
-            String host = splittedRequest[1];
-            ArrayList<String> headerStringArray = (ArrayList<String>) contentLines.clone();
-            ArrayList<Header> headers = new ArrayList<>();
-
-            if (headerStringArray.size() > 1) {
-                headerStringArray.remove(0);
-                for (String str : headerStringArray) {
-                    System.out.println(str);
-                    String[] split = str.split(": ");
-                    if (split.length >= 2) headers.add(new Header(split[0], split[1]));
-                }
-            }
-            Request req = new Request(rawContent, requestMethod, host, headers, clientSocket);
-            if (this.networkManager.onEvent(new RequestSentEvent(this.networkManager, req))) {
-                Header hostHeader = req.getHeader("Host");
-                String rawHost = hostHeader.value;
-                String[] hostSplit = rawHost.split(":");
-                String ip;
-                int port = 80;
-
-                if (hostSplit.length >= 1) ip = hostSplit[0];
-                else return;
-                try {
-                    if (hostSplit.length >= 2) port = Integer.parseInt(hostSplit[1]);
-                } catch (NumberFormatException e) {
-                    return;
-                }
-
-                Socket toHostSocket = new Socket(ip, port);
-                OutputStream toHostOut = toHostSocket.getOutputStream();
-                //Writes the content of the request to the outputstream of the socket that goes to the host
-                toHostOut.write(rawContent.getBytes());
-                toHostOut.flush();
-                InputStream in = toHostSocket.getInputStream();
-                Scanner inScanner = new Scanner(in);
-                //Writes the output of the host to the clients inputstream
-                PrintWriter hostToClient = new PrintWriter(clientSocket.getOutputStream());
-                while (inScanner.hasNextLine()) {
-                    String line = inScanner.nextLine();
-                    System.out.println("Line: " + line);
-                    hostToClient.println(line);
-                }
-                hostToClient.flush();
-            }
-        }catch (Throwable t) {
-            t.printStackTrace();
-        }*/
         try {
             InputStream clientToProxy = clientSocket.getInputStream();
-            String request = "";
             StringBuilder fullRequest = new StringBuilder();
             BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            request = br.readLine();
-            fullRequest.append(request);
+            String statusLine = br.readLine();
+            fullRequest.append(statusLine);
             fullRequest.append("\r\n");
-            String line = "";
+            String line;
+            HashMap<String, String> headers = new HashMap<>();
             while (!(line = br.readLine()).equals("")) {
                 fullRequest.append(line);
+                String[] headerSplit = line.split(": ");
+                if(headerSplit.length > 1) headers.put(headerSplit[0], String.join(": ",Arrays.copyOfRange(headerSplit, 1, headerSplit.length)));
+
+
                 fullRequest.append("\r\n");
             }
 
-            String[] arr = request.split(" ");
-            String urlAdress = arr[1];
+            String[] statusLineSplit = statusLine.split(" ");
+            String statusUrlAddress = statusLineSplit[1];
 
-            String url = "";
-            String connectionMethod = arr[0];
-            if (connectionMethod.equals("CONNECT")) {
-                String[] tmp = arr[1].split(":");
-                url = tmp[0];
-            }
+            String httpMethod = statusLineSplit[0];
+            String[] ipPortSplit = statusLineSplit[1].split(":");
+            String url;
 
-            int port = -1;
-            boolean result = arr[1].matches(":\\d*");
-            if (result) {
-                int ind = arr[1].indexOf(":", 6);
-                String strPort = arr[1].substring(ind);
-                port = Integer.parseInt(strPort);
+
+            String host = headers.get("Host");
+
+            boolean isHttps = !statusLineSplit[1].startsWith("http://");
+
+            int port = isHttps ? 443 : 80;
+            if(host != null) {
+                String[] hostSplit = host.split(":");
+                url = hostSplit[0];
+                if(hostSplit.length > 1) {
+                    try {
+                        port = Integer.parseInt(hostSplit[1]);
+                    }catch (NumberFormatException ignored) {}
+                }else port = 80;
+
+            }else {
+                if(isHttps) {
+                    url = ipPortSplit[0];
+                    if (statusLineSplit[1].matches(":\\d*")) {
+                        int ind = statusLineSplit[1].indexOf(":", 6);
+                        String strPort = statusLineSplit[1].substring(ind);
+                        try {
+                            port = Integer.parseInt(strPort);
+                        }catch (NumberFormatException ignored) { }
+                    }
+                }else url = new URL(statusUrlAddress).getHost();
+
             }
-            Request req = new Request(fullRequest.toString(), connectionMethod, url, clientSocket);
+            Request req = new Request(fullRequest, httpMethod, url, port, headers, clientSocket);
             if(!networkManager.onEvent(new PreRequestSentEvent(networkManager, req))) return;
-            connection = null;
-            boolean isHttps = false;
-
-            if (!arr[1].startsWith("http://")) isHttps = true;
-
-
-            if (port > 0) {
-                connection = (isHttps ? new Socket(url, port) : new Socket(new URL(urlAdress).getHost(), port));
-            } else {
-                connection = (isHttps ? new Socket(url, 443) : new Socket(new URL(urlAdress).getHost(), 80));
+            try {
+                connection = new Socket(req.url, req.port);
+            }catch (UnknownHostException e) {
+                Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
+                clientSocket.close();
+                return;
             }
-            if(!networkManager.onEvent(new RequestSentEvent(networkManager, req, connection))) return;
 
 
             BufferedWriter proxyToclientBW = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
@@ -143,13 +102,17 @@ public class RequestHandler extends Thread {
 
                 InputStream connectionToProxy = connection.getInputStream();
 
-                int k;
-                while ((k = connectionToProxy.read()) != -1) {
-                    clientSocket.getOutputStream().write((char) k);
-                }
+                StringBuilder fullResponse = new StringBuilder();
+                BufferedReader conToProxyReader = new BufferedReader(new InputStreamReader(connectionToProxy));
 
-                clientSocket.getOutputStream().flush();
+                while (!(line = conToProxyReader.readLine()).equals("")) fullResponse.append(line).append("\r\n");
 
+                HttpResponseSentEvent event = new HttpResponseSentEvent(networkManager, req, fullResponse.toString());
+                if(!networkManager.onEvent(event)) return;
+                PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
+                pw.print(event.res);
+                pw.flush();
+                if(!networkManager.onEvent(new RequestSentEvent(networkManager, req, connection))) return;
                 connectionToProxy.close();
                 out.close();
             } else {
@@ -162,7 +125,7 @@ public class RequestHandler extends Thread {
                 new Thread(() -> makeHttpsConnection(clientSocket, connection)).start();
 
                 makeHttpsConnection(connection, clientSocket);
-
+                if(!networkManager.onEvent(new RequestSentEvent(networkManager, req, connection))) return;
                 clientSocket.close();
                 proxyToclientBW.close();
                 br.close();
@@ -173,7 +136,10 @@ public class RequestHandler extends Thread {
             }
 
             clientToProxy.close();
-        } catch (IOException ignored) { }
+        } catch (Throwable t) {
+
+        }
+8
         super.run();
     }
 
@@ -183,11 +149,13 @@ public class RequestHandler extends Thread {
         try {
             do {
                 read = clientSocket.getInputStream().read(buffer);
+                HttpsResponseSentEvent event = new HttpsResponseSentEvent(networkManager, clientSocket, connection, buffer, read);
+                if(!networkManager.onEvent(event)) return;
+                buffer = event.buffer;
+                read = event.read;
                 if (read > 0) {
                     connection.getOutputStream().write(buffer, 0, read);
-                    if (clientSocket.getInputStream().available() < 1) {
-                        connection.getOutputStream().flush();
-                    }
+                    if (clientSocket.getInputStream().available() < 1) connection.getOutputStream().flush();
                 }
             } while (read >= 0);
         } catch (IOException ignored) { }
