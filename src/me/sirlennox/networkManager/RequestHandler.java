@@ -37,13 +37,14 @@ public class RequestHandler extends Thread {
             fullRequest.append("\r\n");
             String line;
             HashMap<String, String> headers = new HashMap<>();
-            while (!(line = br.readLine()).equals("")) {
-                fullRequest.append(line);
-                String[] headerSplit = line.split(": ");
-                if(headerSplit.length > 1) headers.put(headerSplit[0], String.join(": ",Arrays.copyOfRange(headerSplit, 1, headerSplit.length)));
-
-
-                fullRequest.append("\r\n");
+            while (!"".equals(line = br.readLine())) {
+                if(line != null) {
+                    fullRequest.append(line);
+                    String[] headerSplit = line.split(": ");
+                    if (headerSplit.length > 1)
+                        headers.put(headerSplit[0], String.join(": ", Arrays.copyOfRange(headerSplit, 1, headerSplit.length)));
+                    fullRequest.append("\r\n");
+                }
             }
 
             String[] statusLineSplit = statusLine.split(" ");
@@ -86,7 +87,7 @@ public class RequestHandler extends Thread {
             try {
                 connection = new Socket(req.url, req.port);
             }catch (UnknownHostException e) {
-                Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
+                Utils.sendHTTPResponse(clientSocket, "404 DNS_PROBE_FINISHED_NXDOMAIN", new HashMap<>(), null);
                 clientSocket.close();
                 return;
             }
@@ -105,7 +106,9 @@ public class RequestHandler extends Thread {
                 StringBuilder fullResponse = new StringBuilder();
                 BufferedReader conToProxyReader = new BufferedReader(new InputStreamReader(connectionToProxy));
 
-                while (!(line = conToProxyReader.readLine()).equals("")) fullResponse.append(line).append("\r\n");
+                while (!"".equals(line = conToProxyReader.readLine())) {
+                    if(line != null) fullResponse.append(line).append("\r\n");
+                }
 
                 HttpResponseSentEvent event = new HttpResponseSentEvent(networkManager, req, fullResponse.toString());
                 if(!networkManager.onEvent(event)) return;
@@ -137,7 +140,7 @@ public class RequestHandler extends Thread {
 
             clientToProxy.close();
         } catch (Throwable t) {
-
+            t.printStackTrace();
         }
         super.run();
     }
