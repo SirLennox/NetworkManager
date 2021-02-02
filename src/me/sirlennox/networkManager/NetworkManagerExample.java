@@ -28,10 +28,6 @@ public class NetworkManagerExample {
                     System.out.println("------[RESPONSE END]-------");
                     System.out.println("------[EVENT END]----------");
                 }
-                if(e instanceof PreRequestSentEvent) {
-                    System.out.println(((PreRequestSentEvent) e).request.raw.toString());
-
-                }
                 return true;
             }
         };

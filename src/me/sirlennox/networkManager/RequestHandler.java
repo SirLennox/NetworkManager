@@ -85,10 +85,12 @@ public class RequestHandler extends Thread {
                 }else url = new URL(statusUrlAddress).getHost();
 
             }
-            Request req = new Request(fullRequest, httpMethod, host, url, port, headers, clientSocket);
+
+            Request req = new Request(fullRequest, httpMethod, host, statusLineSplit[1], port, headers, clientSocket);
+
             if(!networkManager.onEvent(new PreRequestSentEvent(networkManager, req))) return;
             try {
-                connection = new Socket(req.url, req.port);
+                connection = new Socket(req.host, req.port);
             }catch (UnknownHostException e) {
                 Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
                 clientSocket.close();

@@ -8,6 +8,7 @@ public class Request {
     public StringBuilder raw;
     public String method;
     public String url;
+    public String host;
     public int port;
     public HashMap<String, String> headers;
     public Socket socket;
@@ -16,6 +17,7 @@ public class Request {
         this.raw = raw;
         this.method = method;
         this.url = url;
+        this.host = host;
         this.port = port;
         this.headers = headers;
         this.socket = socket;
