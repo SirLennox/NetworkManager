@@ -12,7 +12,7 @@ public class Request {
     public HashMap<String, String> headers;
     public Socket socket;
 
-    public Request(StringBuilder raw, String method, String url, int port, HashMap<String, String> headers, Socket socket) {
+    public Request(StringBuilder raw, String method, String host, String url, int port, HashMap<String, String> headers, Socket socket) {
         this.raw = raw;
         this.method = method;
         this.url = url;
@@ -21,8 +21,8 @@ public class Request {
         this.socket = socket;
     }
 
-   /* public Header getHeader(String key) {
-        return this.headers.stream().filter(h -> h.key.equalsIgnoreCase(key)).findFirst().orElse(null);
-    }*/
+    public String getHeader(String key) {
+        return this.headers.get(key);
+    }
 
 }

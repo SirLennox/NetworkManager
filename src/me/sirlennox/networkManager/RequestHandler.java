@@ -2,7 +2,7 @@ package me.sirlennox.networkManager;
 
 import me.sirlennox.networkManager.event.events.HttpsResponseSentEvent;
 import me.sirlennox.networkManager.event.events.PreRequestSentEvent;
-import me.sirlennox.networkManager.event.events.RequestSentEvent;
+import me.sirlennox.networkManager.event.events.RequestFinishedEvent;
 import me.sirlennox.networkManager.event.events.HttpResponseSentEvent;
 
 import java.io.*;
@@ -57,7 +57,7 @@ public class RequestHandler extends Thread {
 
             String host = headers.get("Host");
 
-            boolean isHttps = !statusLineSplit[1].startsWith("http://");
+            boolean isHttps = !statusLineSplit[1].startsWith("http://") || statusLineSplit[1].startsWith("https://");
 
             int port = isHttps ? 443 : 80;
             if(host != null) {
@@ -67,7 +67,10 @@ public class RequestHandler extends Thread {
                     try {
                         port = Integer.parseInt(hostSplit[1]);
                     }catch (NumberFormatException ignored) {}
+                    if(port == 443) isHttps = true;
                 }else port = 80;
+
+
 
             }else {
                 if(isHttps) {
@@ -82,12 +85,12 @@ public class RequestHandler extends Thread {
                 }else url = new URL(statusUrlAddress).getHost();
 
             }
-            Request req = new Request(fullRequest, httpMethod, url, port, headers, clientSocket);
+            Request req = new Request(fullRequest, httpMethod, host, url, port, headers, clientSocket);
             if(!networkManager.onEvent(new PreRequestSentEvent(networkManager, req))) return;
             try {
                 connection = new Socket(req.url, req.port);
             }catch (UnknownHostException e) {
-                Utils.sendHTTPResponse(clientSocket, "404 DNS_PROBE_FINISHED_NXDOMAIN", new HashMap<>(), null);
+                Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
                 clientSocket.close();
                 return;
             }
@@ -115,7 +118,7 @@ public class RequestHandler extends Thread {
                 PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
                 pw.print(event.res);
                 pw.flush();
-                if(!networkManager.onEvent(new RequestSentEvent(networkManager, req, connection))) return;
+                if(!networkManager.onEvent(new RequestFinishedEvent(networkManager, req, connection))) return;
                 connectionToProxy.close();
                 out.close();
             } else {
@@ -128,7 +131,7 @@ public class RequestHandler extends Thread {
                 new Thread(() -> makeHttpsConnection(clientSocket, connection)).start();
 
                 makeHttpsConnection(connection, clientSocket);
-                if(!networkManager.onEvent(new RequestSentEvent(networkManager, req, connection))) return;
+                if(!networkManager.onEvent(new RequestFinishedEvent(networkManager, req, connection))) return;
                 clientSocket.close();
                 proxyToclientBW.close();
                 br.close();

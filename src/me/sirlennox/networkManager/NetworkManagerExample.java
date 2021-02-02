@@ -2,6 +2,7 @@ package me.sirlennox.networkManager;
 
 import me.sirlennox.networkManager.event.Event;
 import me.sirlennox.networkManager.event.events.HttpResponseSentEvent;
+import me.sirlennox.networkManager.event.events.HttpsResponseSentEvent;
 import me.sirlennox.networkManager.event.events.PreRequestSentEvent;
 import me.sirlennox.networkManager.event.events.StartEvent;
 
@@ -26,6 +27,10 @@ public class NetworkManagerExample {
                     System.out.println(((HttpResponseSentEvent) e).res);
                     System.out.println("------[RESPONSE END]-------");
                     System.out.println("------[EVENT END]----------");
+                }
+                if(e instanceof PreRequestSentEvent) {
+                    System.out.println(((PreRequestSentEvent) e).request.raw.toString());
+
                 }
                 return true;
             }
