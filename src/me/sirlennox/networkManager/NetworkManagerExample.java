@@ -18,15 +18,8 @@ public class NetworkManagerExample {
                 if(e instanceof StartEvent) {
                     System.out.println("Started!");
                 }
-                if(e instanceof HttpResponseSentEvent) {
-                    System.out.println("\n\n\n\n------[EVENT]----------");
-                    System.out.println("\n\n------[REQUEST]-------");
-                    System.out.println(((HttpResponseSentEvent) e).req.raw);
-                    System.out.println("------[REQUEST END]-------");
-                    System.out.println("\n\n------[RESPONSE]-------");
-                    System.out.println(((HttpResponseSentEvent) e).res);
-                    System.out.println("------[RESPONSE END]-------");
-                    System.out.println("------[EVENT END]----------");
+                if(e instanceof PreRequestSentEvent) {
+                    System.out.println(((PreRequestSentEvent) e).request.raw + "\n");
                 }
                 return true;
             }

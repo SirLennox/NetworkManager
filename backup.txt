@@ -92,6 +92,7 @@ public class RequestHandler extends Thread {
             try {
                 connection = new Socket(req.host, req.port);
             } catch (UnknownHostException e) {
+                e.printStackTrace();
                 if(!isHttps) Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
                 clientSocket.close();
                 return;
@@ -129,9 +130,9 @@ public class RequestHandler extends Thread {
                         "\r\n");
                 proxyToclientBW.flush();
 
-                new Thread(() -> makeHttpsConnection(clientSocket, connection, req)).start();
+                new Thread(() -> makeHttpsConnection(req, connection)).start();
 
-                makeHttpsConnection(connection, clientSocket, req);
+                makeHttpsConnection(req, clientSocket);
 
                 clientSocket.close();
 
@@ -151,21 +152,21 @@ public class RequestHandler extends Thread {
         super.run();
     }
 
-    private void makeHttpsConnection(Socket socket, Socket connection, Request request) {
-        byte[] buffer = new byte[4096];
-        int read;
-        try {
-            do {
-                read = socket.getInputStream().read(buffer);
-                HttpsResponseSentEvent event = new HttpsResponseSentEvent(networkManager, request, socket, connection, buffer, read);
-                if(!networkManager.onEvent(event)) return;
-                buffer = event.buffer;
-                read = event.read;
-                if (read > 0) {
-                    connection.getOutputStream().write(buffer, 0, read);
-                    if (socket.getInputStream().available() < 1) connection.getOutputStream().flush();
-                }
-            } while (read >= 0);
-        } catch (IOException ignored) { }
-    }
+  private void makeHttpsConnection(Socket socket, Socket connection, Request request) {
+         byte[] buffer = new byte[4096];
+         int read;
+         try {
+             do {
+                 read = socket.getInputStream().read(buffer);
+                 HttpsResponseSentEvent event = new HttpsResponseSentEvent(networkManager, request, connection, buffer, read);
+                 if(!networkManager.onEvent(event)) return;
+                 buffer = event.buffer;
+                 read = event.read;
+                 if (read > 0) {
+                     connection.getOutputStream().write(buffer, 0, read);
+                     if (socket.getInputStream().available() < 1) connection.getOutputStream().flush();
+                 }
+             } while (read >= 0);
+         } catch (IOException ignored) { }
+     }
 }

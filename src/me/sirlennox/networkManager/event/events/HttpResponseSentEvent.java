@@ -6,13 +6,13 @@ import me.sirlennox.networkManager.event.Event;
 
 public class HttpResponseSentEvent extends Event {
 
-    public Request req;
-    public String res;
+    public Request request;
+    public String response;
 
 
-    public HttpResponseSentEvent(NetworkManager networkManager, Request req, String res) {
+    public HttpResponseSentEvent(NetworkManager networkManager, Request request, String response) {
         super(networkManager);
-        this.req = req;
-        this.res = res;
+        this.request = request;
+        this.response = response;
     }
 }
