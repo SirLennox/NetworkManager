@@ -6,12 +6,15 @@ import me.sirlennox.networkManager.event.Event;
 
 public class PreRequestSentEvent extends Event {
 
-    public Request request;
+    private final Request request;
 
-    public PreRequestSentEvent(NetworkManager networkManager, Request request) {
-        super(networkManager);
+    public PreRequestSentEvent(Request request) {
+        super();
         this.request = request;
     }
 
 
+    public Request getRequest() {
+        return request;
+    }
 }

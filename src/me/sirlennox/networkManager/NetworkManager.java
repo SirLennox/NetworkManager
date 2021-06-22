@@ -10,7 +10,7 @@ import java.net.Socket;
 public abstract class NetworkManager {
 
     private final int port;
-    public ServerSocket proxy;
+    private ServerSocket proxy;
     private boolean running;
     private Thread runThread;
 
@@ -22,12 +22,16 @@ public abstract class NetworkManager {
         return this.port;
     }
 
+    public ServerSocket getProxy() {
+        return this.proxy;
+    }
+
     public boolean start() {
         this.running = true;
         try {
             this.proxy = new ServerSocket(port);
             this.runLoop(this.proxy);
-            this.onEvent(new StartEvent(this));
+            this.onEvent(new StartEvent());
             return true;
         } catch (Throwable t) {
             t.printStackTrace();

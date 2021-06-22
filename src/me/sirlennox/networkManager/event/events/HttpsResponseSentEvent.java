@@ -8,20 +8,40 @@ import java.net.Socket;
 
 public class HttpsResponseSentEvent extends Event {
 
-    public byte[] buffer;
-    public int read;
+    private final byte[] buffer;
+    private final int read;
 
-    public Request request;
-    public Socket connection;
-    public Socket client;
+    private final Request request;
+    private final Socket connection;
+    private final Socket client;
 
 
-    public HttpsResponseSentEvent(NetworkManager networkManager, Request request, Socket client, Socket connection, byte[] buffer, int read) {
-        super(networkManager);
+    public HttpsResponseSentEvent(Request request, Socket client, Socket connection, byte[] buffer, int read) {
+        super();
         this.buffer = buffer;
         this.read = read;
         this.request = request;
         this.client = client;
         this.connection = connection;
+    }
+
+    public byte[] getBuffer() {
+        return buffer;
+    }
+
+    public int getRead() {
+        return read;
+    }
+
+    public Request getRequest() {
+        return request;
+    }
+
+    public Socket getConnection() {
+        return connection;
+    }
+
+    public Socket getClient() {
+        return client;
     }
 }

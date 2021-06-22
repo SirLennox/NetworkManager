@@ -7,12 +7,20 @@ import me.sirlennox.networkManager.event.Event;
 import java.net.Socket;
 
 public class RequestFinishedEvent extends Event {
-    public Request request;
-    public Socket connection;
+    private final Request request;
+    private final Socket connection;
 
-    public RequestFinishedEvent(NetworkManager networkManager, Request request, Socket connection) {
-        super(networkManager);
+    public RequestFinishedEvent(Request request, Socket connection) {
+        super();
         this.request = request;
         this.connection = connection;
+    }
+
+    public Request getRequest() {
+        return request;
+    }
+
+    public Socket getConnection() {
+        return connection;
     }
 }

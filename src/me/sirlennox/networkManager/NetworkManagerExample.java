@@ -19,7 +19,7 @@ public class NetworkManagerExample {
                     System.out.println("Started!");
                 }
                 if(e instanceof PreRequestSentEvent) {
-                    System.out.println(((PreRequestSentEvent) e).request.raw + "\n");
+                    System.out.println(((PreRequestSentEvent) e).getRequest().getRaw() + "\n");
                 }
                 return true;
             }

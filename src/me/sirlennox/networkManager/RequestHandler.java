@@ -87,17 +87,16 @@ public class RequestHandler extends Thread {
 
             }
             Request req = new Request(fullRequest, httpMethod, url, statusLineSplit[1], port, headers, clientSocket);
-
-            if (!networkManager.onEvent(new PreRequestSentEvent(networkManager, req))) return;
+            if (!networkManager.onEvent(new PreRequestSentEvent(req))) return;
             try {
-                connection = new Socket(req.host, req.port);
+                connection = new Socket(req.getHost(), req.getPort());
             } catch (UnknownHostException e) {
                 if(!isHttps) Utils.sendHTTPResponse(clientSocket, "404 NOT_FOUND", new HashMap<>(), null);
                 clientSocket.close();
                 return;
             }
 
-            BufferedWriter proxyToclientBW = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+            BufferedWriter proxyToClientBW = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
             if (!isHttps) {
                 PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(connection.getOutputStream())));
@@ -111,23 +110,24 @@ public class RequestHandler extends Thread {
                 StringBuilder fullResponse = new StringBuilder();
                 BufferedReader conToProxyReader = new BufferedReader(new InputStreamReader(connectionToProxy));
 
-                while (!"".equals(line = conToProxyReader.readLine())) {
-                    if (line != null) fullResponse.append(line).append("\r\n");
+                while ((line = conToProxyReader.readLine()) != null) {
+                    /*if (line != null)*/ fullResponse.append(line).append("\r\n");
                 }
 
-                HttpResponseSentEvent event = new HttpResponseSentEvent(networkManager, req, fullResponse.toString());
+                HttpResponseSentEvent event = new HttpResponseSentEvent(req, fullResponse.toString());
                 if (!networkManager.onEvent(event)) return;
                 PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
-                pw.print(event.response);
+                System.out.println(event.getResponse());
+                pw.print(event.getResponse());
                 pw.flush();
 
                 connectionToProxy.close();
                 out.close();
             } else {
-                proxyToclientBW.write("HTTP/1.0 200 Connection established\r\n" +
+                proxyToClientBW.write("HTTP/1.0 200 Connection established\r\n" +
                         "Proxy-Agent: ProxyServer/1.0\r\n" +
                         "\r\n");
-                proxyToclientBW.flush();
+                proxyToClientBW.flush();
 
                 new Thread(() -> makeHttpsConnection(clientSocket, connection, req)).start();
 
@@ -135,7 +135,7 @@ public class RequestHandler extends Thread {
 
                 clientSocket.close();
 
-                proxyToclientBW.close();
+                proxyToClientBW.close();
                 br.close();
             }
 
@@ -144,7 +144,7 @@ public class RequestHandler extends Thread {
             }
 
             clientToProxy.close();
-            if (!networkManager.onEvent(new RequestFinishedEvent(networkManager, req, connection))) return;
+            if (!networkManager.onEvent(new RequestFinishedEvent(req, connection))) return;
         } catch (Throwable t) {
 
         }
@@ -157,10 +157,10 @@ public class RequestHandler extends Thread {
         try {
             do {
                 read = socket.getInputStream().read(buffer);
-                HttpsResponseSentEvent event = new HttpsResponseSentEvent(networkManager, request, socket, connection, buffer, read);
+                HttpsResponseSentEvent event = new HttpsResponseSentEvent(request, socket, connection, buffer, read);
                 if(!networkManager.onEvent(event)) return;
-                buffer = event.buffer;
-                read = event.read;
+                buffer = event.getBuffer();
+                read = event.getRead();
                 if (read > 0) {
                     connection.getOutputStream().write(buffer, 0, read);
                     if (socket.getInputStream().available() < 1) connection.getOutputStream().flush();
